@@ -73,7 +73,8 @@ io.on("connection", (socket) => {
         })
     })
 
-    socket.on("unsubscribePin", (_: Socket, data: SubscribePinRequest) => {
+    socket.on("unsubscribePin", (data: SubscribePinRequest) => {
+        console.log("UNsubscribing pin: ", data)
         rpio.poll(data.pin, null)
     })
 })
