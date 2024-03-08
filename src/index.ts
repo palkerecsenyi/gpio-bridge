@@ -62,7 +62,11 @@ io.on("connection", (socket) => {
     socket.on("subscribePin", (data: SubscribePinRequest) => {
         console.log("NEW pin subscription: ", data)
 
-        rpio.poll(data.pin, null)
+        // This throws if there is no event handler
+        try {
+            rpio.poll(data.pin, null)
+        } catch (e) {}
+
         rpio.poll(data.pin, () => {
             const value = rpio.read(data.pin)
             const resp: SubscribedPinValue = {
