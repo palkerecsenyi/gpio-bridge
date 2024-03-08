@@ -8,13 +8,10 @@ import type {
     SubscribedPinValue,
 } from "./types"
 import rpio from "rpio"
+import { createServer } from "node:http"
 
-let port = process.env.PORT
-if (!port) {
-    port = "8080"
-}
-
-const io = new Server(parseInt(port), {
+const server = createServer()
+const io = new Server(server, {
     cors: {
         origin: "https://esp-frontend.palk.dev",
         methods: ["GET", "POST"],
@@ -22,6 +19,7 @@ const io = new Server(parseInt(port), {
 })
 
 io.on("configurePin", (_: Socket, data: ConfigureRequest) => {
+    console.log("configuring pin")
     for (const pin of data.pins) {
         const direction = pin.direction === "input" ? rpio.INPUT : rpio.OUTPUT
 
@@ -38,6 +36,9 @@ io.on("configurePin", (_: Socket, data: ConfigureRequest) => {
                               ? rpio.LOW
                               : undefined
 
+        console.log(
+            `opening pin ${pin.pin} direction ${direction} option ${option}`,
+        )
         rpio.open(pin.pin, direction, option)
     }
 })
@@ -57,8 +58,11 @@ io.on(
 )
 
 io.on("subscribePin", (s: Socket, data: SubscribePinRequest) => {
+    console.log("NEW pin subscription: ", data)
+
     rpio.poll(data.pin, () => {
         const value = rpio.read(data.pin)
+        console.log("PIN POLL: pin ", data.pin, " is ", value)
         const resp: SubscribedPinValue = {
             pin: data.pin,
             on: value === rpio.HIGH,
@@ -69,4 +73,13 @@ io.on("subscribePin", (s: Socket, data: SubscribePinRequest) => {
 
 io.on("unsubscribePin", (_: Socket, data: SubscribePinRequest) => {
     rpio.poll(data.pin, null)
+})
+
+let port = process.env.PORT
+if (!port) {
+    port = "8080"
+}
+
+server.listen(port, () => {
+    console.log("ready!")
 })
