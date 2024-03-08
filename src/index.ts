@@ -18,61 +18,64 @@ const io = new Server(server, {
     },
 })
 
-io.on("configurePin", (_: Socket, data: ConfigureRequest) => {
-    console.log("configuring pin")
-    for (const pin of data.pins) {
-        const direction = pin.direction === "input" ? rpio.INPUT : rpio.OUTPUT
+io.on("connection", (socket) => {
+    socket.on("configurePin", (data: ConfigureRequest) => {
+        console.log("configuring pin")
+        for (const pin of data.pins) {
+            const direction =
+                pin.direction === "input" ? rpio.INPUT : rpio.OUTPUT
 
-        const option =
-            pin.pull === "off"
-                ? rpio.PULL_OFF
-                : pin.pull === "down"
-                  ? rpio.PULL_DOWN
-                  : pin.pull === "up"
-                      ? rpio.PULL_UP
-                      : pin.initialValue === true
-                          ? rpio.HIGH
-                          : pin.initialValue === false
-                              ? rpio.LOW
-                              : undefined
+            const option =
+                pin.pull === "off"
+                    ? rpio.PULL_OFF
+                    : pin.pull === "down"
+                      ? rpio.PULL_DOWN
+                      : pin.pull === "up"
+                          ? rpio.PULL_UP
+                          : pin.initialValue === true
+                              ? rpio.HIGH
+                              : pin.initialValue === false
+                                  ? rpio.LOW
+                                  : undefined
 
-        console.log(
-            `opening pin ${pin.pin} direction ${direction} option ${option}`,
-        )
-        rpio.open(pin.pin, direction, option)
-    }
-})
-
-io.on("setPin", (_: Socket, data: SetPinRequest) => {
-    rpio.write(data.pin, data.on ? rpio.HIGH : rpio.LOW)
-})
-
-io.on(
-    "readPin",
-    (_: Socket, data: ReadPinRequest, cb: (d: ReadPinResponse) => void) => {
-        const value = rpio.read(data.pin)
-        cb({
-            on: value === rpio.HIGH,
-        })
-    },
-)
-
-io.on("subscribePin", (s: Socket, data: SubscribePinRequest) => {
-    console.log("NEW pin subscription: ", data)
-
-    rpio.poll(data.pin, () => {
-        const value = rpio.read(data.pin)
-        console.log("PIN POLL: pin ", data.pin, " is ", value)
-        const resp: SubscribedPinValue = {
-            pin: data.pin,
-            on: value === rpio.HIGH,
+            console.log(
+                `opening pin ${pin.pin} direction ${direction} option ${option}`,
+            )
+            rpio.open(pin.pin, direction, option)
         }
-        s.emit("subscribedPinValue", resp)
     })
-})
 
-io.on("unsubscribePin", (_: Socket, data: SubscribePinRequest) => {
-    rpio.poll(data.pin, null)
+    socket.on("setPin", (data: SetPinRequest) => {
+        rpio.write(data.pin, data.on ? rpio.HIGH : rpio.LOW)
+    })
+
+    socket.on(
+        "readPin",
+        (data: ReadPinRequest, cb: (d: ReadPinResponse) => void) => {
+            const value = rpio.read(data.pin)
+            cb({
+                on: value === rpio.HIGH,
+            })
+        },
+    )
+
+    socket.on("subscribePin", (data: SubscribePinRequest) => {
+        console.log("NEW pin subscription: ", data)
+
+        rpio.poll(data.pin, () => {
+            const value = rpio.read(data.pin)
+            console.log(`PIN POLL: pin ${data.pin} is ${value}`)
+            const resp: SubscribedPinValue = {
+                pin: data.pin,
+                on: value === rpio.HIGH,
+            }
+            socket.emit("subscribedPinValue", resp)
+        })
+    })
+
+    socket.on("unsubscribePin", (_: Socket, data: SubscribePinRequest) => {
+        rpio.poll(data.pin, null)
+    })
 })
 
 let port = process.env.PORT
