@@ -62,9 +62,9 @@ io.on("connection", (socket) => {
     socket.on("subscribePin", (data: SubscribePinRequest) => {
         console.log("NEW pin subscription: ", data)
 
+        rpio.poll(data.pin, null)
         rpio.poll(data.pin, () => {
             const value = rpio.read(data.pin)
-            console.log(`PIN POLL: pin ${data.pin} is ${value}`)
             const resp: SubscribedPinValue = {
                 pin: data.pin,
                 on: value === rpio.HIGH,
