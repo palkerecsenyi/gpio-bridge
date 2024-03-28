@@ -46,6 +46,7 @@ io.on("connection", (socket) => {
     })
 
     socket.on("setPin", (data: SetPinRequest) => {
+        console.log(`setting pin ${data.pin} to ${data.on}`)
         rpio.write(data.pin, data.on ? rpio.HIGH : rpio.LOW)
     })
 
