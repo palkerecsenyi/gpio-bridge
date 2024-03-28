@@ -1,4 +1,4 @@
-import { Server, Socket } from "socket.io"
+import { Server } from "socket.io"
 import type {
     ConfigureRequest,
     ReadPinRequest,
@@ -62,7 +62,12 @@ io.on("connection", (socket) => {
     socket.on("subscribePin", (data: SubscribePinRequest) => {
         console.log("NEW pin subscription: ", data)
 
-        // This throws if there is no event handler
+        if (typeof data.pin !== "number") {
+            console.warn("Tried to subscribe to non-numeric pin: ", data.pin)
+            return
+        }
+
+        // This throws if there is no event handler; we just need to clear it to make sure there's no existing handler
         try {
             rpio.poll(data.pin, null)
         } catch (e) {}
@@ -74,11 +79,16 @@ io.on("connection", (socket) => {
                 on: value === rpio.HIGH,
             }
             socket.emit("subscribedPinValue", resp)
+            rpio.msleep(20)
         })
     })
 
     socket.on("unsubscribePin", (data: SubscribePinRequest) => {
         console.log("UNsubscribing pin: ", data)
+        if (typeof data.pin !== "number") {
+            console.warn("Tried to unsubscribe non-numeric pin: ", data.pin)
+            return
+        }
         rpio.poll(data.pin, null)
     })
 })
