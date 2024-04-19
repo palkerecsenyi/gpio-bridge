@@ -3,6 +3,7 @@ import type {
     ConfigureRequest,
     ReadPinRequest,
     ReadPinResponse,
+    SetPinPWMRequest,
     SetPinRequest,
     SubscribePinRequest,
     SubscribedPinValue,
@@ -23,7 +24,11 @@ io.on("connection", (socket) => {
         console.log("configuring pin")
         for (const pin of data.pins) {
             const direction =
-                pin.direction === "input" ? rpio.INPUT : rpio.OUTPUT
+                pin.direction === "input"
+                    ? rpio.INPUT
+                    : pin.direction === "pwm"
+                      ? rpio.PWM
+                      : rpio.OUTPUT
 
             const option =
                 pin.pull === "off"
@@ -48,6 +53,11 @@ io.on("connection", (socket) => {
     socket.on("setPin", (data: SetPinRequest) => {
         console.log(`setting pin ${data.pin} to ${data.on}`)
         rpio.write(data.pin, data.on ? rpio.HIGH : rpio.LOW)
+    })
+
+    socket.on("writePWM", (data: SetPinPWMRequest) => {
+        rpio.pwmSetRange(data.pin, data.range)
+        rpio.pwmSetData(data.pin, data.data)
     })
 
     socket.on(
@@ -98,6 +108,9 @@ let port = process.env.PORT
 if (!port) {
     port = "8080"
 }
+
+rpio.init({ gpiomem: false })
+rpio.pwmSetClockDivider(4)
 
 server.listen(port, () => {
     console.log("ready!")

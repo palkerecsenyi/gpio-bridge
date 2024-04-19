@@ -1,6 +1,6 @@
 export interface PinConfigRequest {
     pin: number
-    direction: 'input' | 'output'
+    direction: 'input' | 'output' | 'pwm'
     pull?: 'off' | 'down' | 'up'
     initialValue?: boolean
 }
@@ -12,6 +12,12 @@ export interface ConfigureRequest {
 export interface SetPinRequest {
     pin: number
     on: boolean
+}
+
+export interface SetPinPWMRequest {
+    pin: number
+    range: number
+    data: number
 }
 
 export interface ReadPinRequest {
